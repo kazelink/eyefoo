@@ -119,23 +119,26 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         SetTextColor(hdc, s_hudTextCol);
         
         int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        int nudge = MulDiv(2, dpi, 96);
+
+        TEXTMETRICW tm;
+        GetTextMetricsW(hdc, &tm);
+        int centerY = rc.top + (rc.bottom - rc.top) / 2;
+        // Text is drawn from top (y). The visual ink of digits is between tmInternalLeading and tmAscent.
+        // We set the mathematical center of this ink to exactly centerY.
+        int ty = centerY - (tm.tmAscent + tm.tmInternalLeading) / 2;
 
         wchar_t* colon = wcschr(s_hudText, L':');
         if (colon && wcslen(s_hudText) == 5) {
             int maxW = 0;
-            SIZE szH = {0, 0};
             for (wchar_t c = L'0'; c <= L'9'; c++) {
                 SIZE sz; GetTextExtentPoint32W(hdc, &c, 1, &sz);
                 if (sz.cx > maxW) maxW = sz.cx;
-                szH = sz;
             }
             
             int dw = maxW + MulDiv(2, dpi, 96); // Reduced spacing
             int colonW = MulDiv(10, dpi, 96);   // Reduced colon width
             
             int centerX = rc.left + (rc.right - rc.left) / 2;
-            int ty = rc.top + (rc.bottom - rc.top - szH.cy) / 2 - nudge + MulDiv(2, dpi, 96); // Shift the whole text block down slightly
             
             int tx[4];
             tx[2] = centerX + colonW / 2;       
@@ -161,11 +164,10 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             int dotX1 = centerX - dotSize / 2;
             int dotX2 = dotX1 + dotSize;
             
-            int centerY = ty + szH.cy / 2 + MulDiv(1, dpi, 96); 
             int dotYOffset = MulDiv(5, dpi, 96);
             
-            // Shift the top dot down 1 extra pixel
-            int topDotY1 = centerY - dotYOffset - dotSize / 2 + 1;
+            // Colons are also mathematically centered against centerY
+            int topDotY1 = centerY - dotYOffset - dotSize / 2;
             int topDotY2 = topDotY1 + dotSize;
             
             int botDotY1 = centerY + dotYOffset - dotSize / 2;
@@ -183,7 +185,6 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             int len = wcslen(s_hudText);
             GetTextExtentPoint32W(hdc, s_hudText, len, &sz);
             int tx = rc.left + (rc.right - rc.left - sz.cx) / 2;
-            int ty = rc.top + (rc.bottom - rc.top - sz.cy) / 2 - nudge;
             TextOutW(hdc, tx, ty, s_hudText, len);
         }
 
