@@ -9,6 +9,12 @@
 #include "logic.h"
 #include "hud.h"
 #include "tray.h"
+
+#include "types.h"
+#include "resource.h"
+#include "logic.h"
+#include "hud.h"
+#include "tray.h"
 #include "config_ui.h"
 #include "utils.h"
 
@@ -16,7 +22,8 @@ Cfg   g_cfg     = { DEF_WORK_MIN, DEF_FOCUS_MIN, FALSE };
 State g_state   = ST_WORK;
 State g_saved_state = ST_WORK;
 int   g_elapsed = 0;
-int   g_focus_elapsed = 0;
+volatile LONG g_focus_elapsed = 0;
+volatile BOOL g_is_idle = FALSE;
 int   g_snoozed = 0;
 BOOL  g_warned  = FALSE;
 

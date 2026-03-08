@@ -25,7 +25,7 @@ extern Cfg   g_cfg;
 extern State g_state;
 extern State g_saved_state;
 extern int   g_elapsed;
-extern int   g_focus_elapsed;
+extern volatile LONG   g_focus_elapsed;
 extern int   g_snoozed;
 extern BOOL  g_warned;
 
@@ -34,6 +34,8 @@ extern HWND  g_hHUD;
 extern HWND  g_hCfg;
 extern HFONT g_hFontHeavy;
 extern HICON g_hIco;
+
+extern volatile BOOL g_is_idle;
 
 #define DEF_WORK_MIN   40
 #define DEF_FOCUS_MIN  60

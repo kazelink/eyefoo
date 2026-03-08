@@ -4,6 +4,7 @@
 #include "tray.h"
 #include "utils.h"
 #include <stdio.h>
+#include <shellapi.h>
 
 typedef enum {
     EV_TO_WORK_RESET,
@@ -141,6 +142,38 @@ void Logic_Snooze(void) {
 
 void Logic_Tick(void) {
     if (g_state == ST_PAUSED) return;
+
+    QUERY_USER_NOTIFICATION_STATE qstate;
+    if (SUCCEEDED(SHQueryUserNotificationState(&qstate))) {
+        if (qstate == QUNS_BUSY || qstate == QUNS_RUNNING_D3D_FULL_SCREEN || qstate == QUNS_PRESENTATION_MODE) {
+            if (g_hHUD && IsWindowVisible(g_hHUD)) {
+                ShowWindow(g_hHUD, SW_HIDE);
+            }
+            Tray_Update();
+            return;
+        } else {
+            if (g_hHUD && !IsWindowVisible(g_hHUD)) {
+                ShowWindow(g_hHUD, SW_SHOWNOACTIVATE);
+            }
+        }
+    }
+
+    LASTINPUTINFO lii;
+    lii.cbSize = sizeof(LASTINPUTINFO);
+    if (GetLastInputInfo(&lii)) {
+        DWORD idleMs = GetTickCount() - lii.dwTime;
+        if (idleMs > 30000) {
+            // Treat as paused when user is idle for more than 30s
+            // Don't update g_state permanently to avoid breaking manual resume
+            // We just return out so `g_elapsed` doesn't increase.
+            g_is_idle = TRUE;
+            HUD_Refresh();
+            Tray_Update();
+            return;
+        } else {
+            g_is_idle = FALSE;
+        }
+    }
 
     if (g_state == ST_FOCUS) {
         g_focus_elapsed++;

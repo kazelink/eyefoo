@@ -113,21 +113,79 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         rcProg.right = rc.left + (int)((rc.right - rc.left) * s_hudProgress);
         FillRect(hdc, &rcProg, hbrProg);
         DeleteObject(hbrProg);
-
         // 3. Draw text manually to correct vertical optical alignment
         SelectObject(hdc, g_hFontHeavy);
         SetBkMode(hdc, TRANSPARENT);
         SetTextColor(hdc, s_hudTextCol);
         
-        SIZE sz;
-        int len = wcslen(s_hudText);
-        GetTextExtentPoint32W(hdc, s_hudText, len, &sz);
-        int tx = rc.left + (rc.right - rc.left - sz.cx) / 2;
-        
         int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
         int nudge = MulDiv(2, dpi, 96);
-        int ty = rc.top + (rc.bottom - rc.top - sz.cy) / 2 - nudge; // Nudge up for strict centering
-        TextOutW(hdc, tx, ty, s_hudText, len);
+
+        wchar_t* colon = wcschr(s_hudText, L':');
+        if (colon && wcslen(s_hudText) == 5) {
+            int maxW = 0;
+            SIZE szH = {0, 0};
+            for (wchar_t c = L'0'; c <= L'9'; c++) {
+                SIZE sz; GetTextExtentPoint32W(hdc, &c, 1, &sz);
+                if (sz.cx > maxW) maxW = sz.cx;
+                szH = sz;
+            }
+            
+            int dw = maxW + MulDiv(2, dpi, 96); // Reduced spacing
+            int colonW = MulDiv(10, dpi, 96);   // Reduced colon width
+            
+            int centerX = rc.left + (rc.right - rc.left) / 2;
+            int ty = rc.top + (rc.bottom - rc.top - szH.cy) / 2 - nudge + MulDiv(2, dpi, 96); // Shift the whole text block down slightly
+            
+            int tx[4];
+            tx[2] = centerX + colonW / 2;       
+            tx[3] = tx[2] + dw;                 
+            tx[1] = centerX - colonW / 2 - dw;  
+            tx[0] = tx[1] - dw;                 
+            
+            wchar_t chars[4] = { s_hudText[0], s_hudText[1], s_hudText[3], s_hudText[4] };
+            for(int i = 0; i < 4; i++) {
+                SIZE sz; GetTextExtentPoint32W(hdc, &chars[i], 1, &sz);
+                int offX = (dw - sz.cx) / 2;
+                TextOutW(hdc, tx[i] + offX, ty, &chars[i], 1);
+            }
+            
+            HBRUSH hDot = CreateSolidBrush(s_hudTextCol);
+            HBRUSH oldB = SelectObject(hdc, hDot);
+            HPEN hPen = CreatePen(PS_SOLID, 1, s_hudTextCol);
+            HPEN oldP = SelectObject(hdc, hPen);
+            
+            int dotSize = MulDiv(4, dpi, 96);
+            if (dotSize < 3) dotSize = 3;
+            
+            int dotX1 = centerX - dotSize / 2;
+            int dotX2 = dotX1 + dotSize;
+            
+            int centerY = ty + szH.cy / 2 + MulDiv(1, dpi, 96); 
+            int dotYOffset = MulDiv(5, dpi, 96);
+            
+            // Shift the top dot down 1 extra pixel
+            int topDotY1 = centerY - dotYOffset - dotSize / 2 + 1;
+            int topDotY2 = topDotY1 + dotSize;
+            
+            int botDotY1 = centerY + dotYOffset - dotSize / 2;
+            int botDotY2 = botDotY1 + dotSize;
+            
+            Ellipse(hdc, dotX1, topDotY1, dotX2, topDotY2);
+            Ellipse(hdc, dotX1, botDotY1, dotX2, botDotY2);
+            
+            SelectObject(hdc, oldB);
+            SelectObject(hdc, oldP);
+            DeleteObject(hDot);
+            DeleteObject(hPen);
+        } else {
+            SIZE sz;
+            int len = wcslen(s_hudText);
+            GetTextExtentPoint32W(hdc, s_hudText, len, &sz);
+            int tx = rc.left + (rc.right - rc.left - sz.cx) / 2;
+            int ty = rc.top + (rc.bottom - rc.top - sz.cy) / 2 - nudge;
+            TextOutW(hdc, tx, ty, s_hudText, len);
+        }
 
         EndPaint(hwnd, &ps);
         return 0;
