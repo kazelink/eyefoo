@@ -6,8 +6,8 @@
 #include "config_ui.h"
 #include "utils.h"
 
-#define HUD_W         108
-#define HUD_H         32
+#define HUD_W         90
+#define HUD_H         26
 #define HUD_PAD_X     20
 #define HUD_PAD_Y     80
 
@@ -122,10 +122,25 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         TEXTMETRICW tm;
         GetTextMetricsW(hdc, &tm);
-        int centerY = rc.top + (rc.bottom - rc.top) / 2;
-        // Text is drawn from top (y). The visual ink of digits is between tmInternalLeading and tmAscent.
-        // We set the mathematical center of this ink to exactly centerY.
-        int ty = centerY - (tm.tmAscent + tm.tmInternalLeading) / 2;
+        
+        int hudCenterY = rc.top + (rc.bottom - rc.top) / 2;
+        int ty;
+
+        GLYPHMETRICS gm;
+        MAT2 mat2;
+        ZeroMemory(&mat2, sizeof(mat2));
+        mat2.eM11.value = 1; mat2.eM22.value = 1;
+        
+        if (GetGlyphOutlineW(hdc, L'0', GGO_METRICS, &gm, 0, NULL, &mat2) != GDI_ERROR) {
+            // gm.gmptGlyphOrigin.y: from baseline UP to the top of the glyph ink.
+            // gm.gmBlackBoxY: total height of the glyph ink.
+            // Ink center distance from baseline = gm.gmptGlyphOrigin.y - gm.gmBlackBoxY / 2
+            // To place ink center exactly at hudCenterY:
+            int baselineY = hudCenterY + (int)gm.gmptGlyphOrigin.y - (int)gm.gmBlackBoxY / 2;
+            ty = baselineY - tm.tmAscent;
+        } else {
+            ty = hudCenterY - (tm.tmAscent + tm.tmInternalLeading) / 2;
+        }
 
         wchar_t* colon = wcschr(s_hudText, L':');
         if (colon && wcslen(s_hudText) == 5) {
@@ -164,13 +179,13 @@ LRESULT CALLBACK HUDProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             int dotX1 = centerX - dotSize / 2;
             int dotX2 = dotX1 + dotSize;
             
-            int dotYOffset = MulDiv(5, dpi, 96);
+            int dotYOffset = MulDiv(4, dpi, 96);
             
-            // Colons are also mathematically centered against centerY
-            int topDotY1 = centerY - dotYOffset - dotSize / 2;
+            // Colons are mathematically centered against hudCenterY (same pivot as the digits' ink)
+            int topDotY1 = hudCenterY - dotYOffset - dotSize / 2;
             int topDotY2 = topDotY1 + dotSize;
             
-            int botDotY1 = centerY + dotYOffset - dotSize / 2;
+            int botDotY1 = hudCenterY + dotYOffset - dotSize / 2;
             int botDotY2 = botDotY1 + dotSize;
             
             Ellipse(hdc, dotX1, topDotY1, dotX2, topDotY2);

@@ -41,7 +41,7 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (!g_hIco) {
             g_hIco = LoadIconW(NULL, IDI_APPLICATION);
         }
-        g_hFontHeavy = Util_HeavyFont(16);
+        g_hFontHeavy = Util_HeavyFont(14);
         Config_Load();
         Tray_Init(hwnd);
         HUD_Create();
