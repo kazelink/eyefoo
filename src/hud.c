@@ -4,6 +4,7 @@
 #include <dwmapi.h>
 #include "tray.h"
 #include "config_ui.h"
+#include "utils.h"
 
 #define HUD_W         108
 #define HUD_H         32
@@ -12,7 +13,6 @@
 
 static COLORREF s_hudBg      = RGB(40, 44, 40);   // Natural dark gray-green
 static COLORREF s_hudProgW   = RGB(105, 145, 115); // Natural moss green
-static COLORREF s_hudProgR   = RGB(100, 130, 160); // Natural slate blue
 static COLORREF s_hudTextCol = RGB(250, 250, 250); // White text
 static wchar_t  s_hudText[32];
 static float    s_hudProgress = 0.0f;
@@ -29,7 +29,7 @@ void HUD_Refresh(void) {
     
     // If warning, text goes red, else stays white
     if (remWork <= WARN_SEC) {
-        s_hudTextCol = RGB(215, 100, 90); // Muted Red
+        s_hudTextCol = RGB(179, 0, 0); // #b30000
     } else {
         s_hudTextCol = RGB(250, 250, 250); // White
     }
@@ -48,8 +48,12 @@ void HUD_Create(void) {
     POINT pt;
     GetCursorPos(&pt);
     HMONITOR hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-    MONITORINFO mi = { sizeof(mi) };
-    GetMonitorInfoW(hMon, &mi);
+    MONITORINFO mi = {0};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(hMon, &mi)) {
+        Util_LogLastError(L"GetMonitorInfoW");
+        return;
+    }
     
     HDC hdc = GetDC(NULL);
     int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
@@ -67,14 +71,25 @@ void HUD_Create(void) {
         WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED,
         WC_HUD, NULL, WS_POPUP,
         x, y, w, h, NULL, NULL, GetModuleHandleW(NULL), NULL);
+    if (!g_hHUD) {
+        Util_LogLastError(L"CreateWindowExW(WC_HUD)");
+        return;
+    }
 
     // DWM: Apply native Windows 11 rounded corners & drop shadow
     int corner = DWMWCP_ROUND;
-    DwmSetWindowAttribute(g_hHUD, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
+    HRESULT hr = DwmSetWindowAttribute(g_hHUD, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
+    if (FAILED(hr)) {
+        wchar_t msg[128];
+        swprintf(msg, 128, L"DwmSetWindowAttribute failed (hr=0x%08X)", (unsigned int)hr);
+        Util_Log(msg);
+    }
 
     // Remove custom SetWindowRgn to allow DWM to work
     // Alpha 230/255 for a slight frosted glass look
-    SetLayeredWindowAttributes(g_hHUD, 0, 240, LWA_ALPHA);
+    if (!SetLayeredWindowAttributes(g_hHUD, 0, 240, LWA_ALPHA)) {
+        Util_LogLastError(L"SetLayeredWindowAttributes");
+    }
     ShowWindow(g_hHUD, SW_SHOWNOACTIVATE);
     HUD_Refresh();
 }

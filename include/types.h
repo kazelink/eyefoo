@@ -32,7 +32,6 @@ extern BOOL  g_warned;
 extern HWND  g_hMain;
 extern HWND  g_hHUD;
 extern HWND  g_hCfg;
-extern HFONT g_hFont;
 extern HFONT g_hFontHeavy;
 extern HICON g_hIco;
 

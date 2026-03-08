@@ -13,6 +13,7 @@ static HWND _Ctrl(const wchar_t *cls, const wchar_t *txt, DWORD sty,
                   int x,int y,int w,int h, HWND p, int id, HFONT f) {
     HWND hw = CreateWindowExW(0, cls, txt, WS_CHILD|WS_VISIBLE|sty,
         x,y,w,h, p, (HMENU)(INT_PTR)id, GetModuleHandleW(NULL), NULL);
+    if (!hw) Util_LogLastError(L"CreateWindowExW(_Ctrl)");
     if (f) SendMessageW(hw, WM_SETFONT, (WPARAM)f, TRUE);
     return hw;
 }
@@ -21,6 +22,7 @@ static HWND _Edit(const wchar_t *val, int x,int y,int w,int h,
     HWND hw = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", val,
         WS_CHILD|WS_VISIBLE|ES_NUMBER|ES_CENTER, x,y,w,h,
         p,(HMENU)(INT_PTR)id,GetModuleHandleW(NULL),NULL);
+    if (!hw) Util_LogLastError(L"CreateWindowExW(_Edit)");
     if (f) SendMessageW(hw, WM_SETFONT, (WPARAM)f, TRUE);
     return hw;
 }
@@ -28,6 +30,10 @@ static void _Spin(HWND buddy, int lo,int hi,int val, HWND p, int id) {
     HWND hw = CreateWindowExW(0, UPDOWN_CLASSW, NULL,
         WS_CHILD|WS_VISIBLE|UDS_SETBUDDYINT|UDS_ALIGNRIGHT|UDS_ARROWKEYS,
         0,0,0,0, p,(HMENU)(INT_PTR)id,GetModuleHandleW(NULL),NULL);
+    if (!hw) {
+        Util_LogLastError(L"CreateWindowExW(_Spin)");
+        return;
+    }
     SendMessageW(hw, UDM_SETBUDDY,   (WPARAM)buddy, 0);
     SendMessageW(hw, UDM_SETRANGE32, lo, hi);
     SendMessageW(hw, UDM_SETPOS32,   0,  val);
@@ -49,20 +55,28 @@ void Cfg_Open(void) {
     int cx = (wa.right  + wa.left - W) / 2;
     int cy = (wa.bottom + wa.top  - H) / 2;
 
-    WNDCLASSEXW wc = {sizeof(wc)};
+    WNDCLASSEXW wc = {0};
+    wc.cbSize        = sizeof(wc);
     wc.lpfnWndProc   = CfgProc;
     wc.hInstance     = GetModuleHandleW(NULL);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE+1);
     wc.lpszClassName = WC_CFG;
     wc.hIcon         = g_hIco;
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
-    RegisterClassExW(&wc);
+    if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        Util_LogLastError(L"RegisterClassExW(WC_CFG)");
+        return;
+    }
 
     g_hCfg = CreateWindowExW(
         WS_EX_DLGMODALFRAME|WS_EX_APPWINDOW,
         WC_CFG, APP_NAME L"  —  设置",
         WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
         cx, cy, W, H, NULL, NULL, GetModuleHandleW(NULL), NULL);
+    if (!g_hCfg) {
+        Util_LogLastError(L"CreateWindowExW(WC_CFG)");
+        return;
+    }
 
     ShowWindow(g_hCfg, SW_SHOW);
     UpdateWindow(g_hCfg);
@@ -111,9 +125,6 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_COMMAND:
         switch (LOWORD(wp)) {
-        case IDC_CANCEL:
-            DestroyWindow(hwnd);
-            break;
         case IDC_OK: {
             wchar_t v[8], vF[8];
             GetWindowTextW(GetDlgItem(hwnd,IDC_WORK_E),  v,8);  int nw=_wtoi(v);
@@ -131,6 +142,7 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             g_cfg.workMin = nw;
             g_cfg.focusMin = nF;
             g_cfg.autoStart = (BST_CHECKED == SendMessageW(GetDlgItem(hwnd,IDC_AUTO), BM_GETCHECK,0,0));
+            Reg_SetAutoStart(g_cfg.autoStart);
             Config_Save();
             Logic_StartWork();
             HUD_Refresh();

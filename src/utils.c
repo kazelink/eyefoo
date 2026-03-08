@@ -2,6 +2,20 @@
 #include "types.h"
 #include <stdio.h>
 
+void Util_Log(const wchar_t *msg) {
+    if (!msg) return;
+    OutputDebugStringW(L"[EyeReminder] ");
+    OutputDebugStringW(msg);
+    OutputDebugStringW(L"\n");
+}
+
+void Util_LogLastError(const wchar_t *api) {
+    wchar_t buf[256];
+    DWORD err = GetLastError();
+    swprintf(buf, 256, L"%ls failed (error=%lu)", api ? api : L"(unknown)", (unsigned long)err);
+    Util_Log(buf);
+}
+
 BOOL Reg_GetAutoStart(void) {
     HKEY hk; BOOL on = FALSE;
     if (!RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_QUERY_VALUE, &hk)) {
@@ -37,7 +51,7 @@ void Config_Load(void) {
     GetIniPath(path);
     g_cfg.workMin   = GetPrivateProfileIntW(L"Settings", L"WorkMin",   DEF_WORK_MIN,   path);
     g_cfg.focusMin  = GetPrivateProfileIntW(L"Settings", L"FocusMin",  DEF_FOCUS_MIN,  path);
-    g_cfg.autoStart = GetPrivateProfileIntW(L"Settings", L"AutoStart", 0,              path);
+    g_cfg.autoStart = Reg_GetAutoStart();
 }
 
 void Config_Save(void) {

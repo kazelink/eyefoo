@@ -23,7 +23,6 @@ BOOL  g_warned  = FALSE;
 HWND  g_hMain = NULL;
 HWND  g_hHUD  = NULL;
 HWND  g_hCfg  = NULL;
-HFONT g_hFont = NULL;
 HFONT g_hFontHeavy = NULL;
 HICON g_hIco  = NULL;
 
@@ -35,13 +34,18 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (!g_hIco) {
             g_hIco = LoadIconW(NULL, IDI_APPLICATION);
         }
-        g_hFont = Util_Font(11, FALSE);
         g_hFontHeavy = Util_HeavyFont(16);
         Config_Load();
         Tray_Init(hwnd);
         HUD_Create();
-        SetTimer(hwnd, ID_TICK, 1000, NULL);
-        WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
+        if (!SetTimer(hwnd, ID_TICK, 1000, NULL)) {
+            Util_LogLastError(L"SetTimer(ID_TICK)");
+            DestroyWindow(hwnd);
+            return -1;
+        }
+        if (!WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION)) {
+            Util_LogLastError(L"WTSRegisterSessionNotification");
+        }
         return 0;
 
     case WM_TIMER:
@@ -50,22 +54,9 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_WTSSESSION_CHANGE:
         if (wp == WTS_SESSION_UNLOCK) {
-            if (g_saved_state == ST_FOCUS) {
-                g_state = ST_FOCUS;
-            } else {
-                Logic_StartWork();
-            }
-            HUD_Refresh();
-            Tray_Update();
+            Logic_OnSessionUnlock();
         } else if (wp == WTS_SESSION_LOCK) {
-            if (g_state != ST_PAUSED) {
-                g_saved_state = g_state;
-                g_state = ST_PAUSED;
-            } else {
-                g_saved_state = ST_WORK;
-            }
-            HUD_Refresh();
-            Tray_Update();
+            Logic_OnSessionLock();
         }
         return 0;
 
@@ -82,7 +73,6 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case IDM_RESET:    Logic_Reset(); break;
         case IDM_FOCUS:    Logic_StartFocus(); break;
         case IDM_STOP_FOCUS: Logic_StopFocus(); break;
-        case IDM_SETTINGS: Cfg_Open();     break;
         case IDM_EXIT:
             DestroyWindow(hwnd);
             break;
@@ -95,12 +85,15 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
            nid.cbSize = sizeof(nid);
            nid.hWnd = hwnd;
            nid.uID = 1;
-           Shell_NotifyIconW(NIM_DELETE, &nid);
+           if (!Shell_NotifyIconW(NIM_DELETE, &nid)) {
+               Util_Log(L"Shell_NotifyIconW(NIM_DELETE) failed");
+           }
         }
-        WTSUnRegisterSessionNotification(hwnd);
+        if (!WTSUnRegisterSessionNotification(hwnd)) {
+            Util_LogLastError(L"WTSUnRegisterSessionNotification");
+        }
         KillTimer(hwnd, ID_TICK);
         if (g_hIco)  DestroyIcon(g_hIco);
-        if (g_hFont) DeleteObject(g_hFont);
         if (g_hFontHeavy) DeleteObject(g_hFontHeavy);
         PostQuitMessage(0);
         return 0;
@@ -110,44 +103,63 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
     (void)p; (void)cmd; (void)n;
+    int exitCode = 1;
     
     HANDLE hMutex = CreateMutexW(NULL, TRUE, L"EyeReminder_SingleInstance_Mutex");
+    if (!hMutex) {
+        Util_LogLastError(L"CreateMutexW");
+        return exitCode;
+    }
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        if (hMutex) CloseHandle(hMutex);
+        CloseHandle(hMutex);
         return 0; // Exit if already running
     }
 
     INITCOMMONCONTROLSEX ic = {sizeof(ic), ICC_UPDOWN_CLASS};
-    InitCommonControlsEx(&ic);
+    if (!InitCommonControlsEx(&ic)) {
+        Util_LogLastError(L"InitCommonControlsEx");
+    }
 
     /* Register HUD class */
-    WNDCLASSEXW wc = {sizeof(wc)};
+    WNDCLASSEXW wc = {0};
+    wc.cbSize        = sizeof(wc);
     wc.style         = CS_DBLCLKS;
     wc.lpfnWndProc   = HUDProc;
     wc.hInstance     = hInst;
     wc.lpszClassName = WC_HUD;
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
-    RegisterClassExW(&wc);
+    if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        Util_LogLastError(L"RegisterClassExW(WC_HUD)");
+        goto cleanup;
+    }
 
     /* Register Main message window class */
+    wc.style         = 0;
     wc.lpfnWndProc   = MainProc;
     wc.hbrBackground = NULL;
     wc.lpszClassName = WC_MAIN;
-    RegisterClassExW(&wc);
+    if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        Util_LogLastError(L"RegisterClassExW(WC_MAIN)");
+        goto cleanup;
+    }
 
     /* Create invisible main message window */
-    CreateWindowExW(0, WC_MAIN, APP_NAME, 0,
+    HWND hMsgWnd = CreateWindowExW(0, WC_MAIN, APP_NAME, 0,
         0,0,0,0, HWND_MESSAGE, NULL, hInst, NULL);
+    if (!hMsgWnd) {
+        Util_LogLastError(L"CreateWindowExW(WC_MAIN)");
+        goto cleanup;
+    }
 
     MSG m;
     while (GetMessageW(&m, NULL, 0, 0)) {
         TranslateMessage(&m);
         DispatchMessageW(&m);
     }
-    
-    if (hMutex) {
-        ReleaseMutex(hMutex);
-        CloseHandle(hMutex);
-    }
-    return (int)m.wParam;
+    exitCode = (int)m.wParam;
+
+cleanup:
+    ReleaseMutex(hMutex);
+    CloseHandle(hMutex);
+    return exitCode;
 }
