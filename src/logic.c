@@ -95,6 +95,7 @@ void Logic_StartRest(void) {
     Logic_Transit(EV_TO_PAUSED_WORK_TIMEOUT);
     if (!LockWorkStation()) {
         Util_LogLastError(L"LockWorkStation");
+        Logic_Transit(EV_TO_WORK_RESET);
     }
 }
 

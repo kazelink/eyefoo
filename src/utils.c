@@ -27,13 +27,35 @@ BOOL Reg_GetAutoStart(void) {
 
 void Reg_SetAutoStart(BOOL on) {
     HKEY hk;
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_SET_VALUE, &hk)) return;
+    LONG rc = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_SET_VALUE, &hk);
+    if (rc != ERROR_SUCCESS) {
+        SetLastError((DWORD)rc);
+        Util_LogLastError(L"RegOpenKeyExW(Run)");
+        return;
+    }
+
     if (on) {
         wchar_t p[MAX_PATH];
-        GetModuleFileNameW(NULL, p, MAX_PATH);
-        RegSetValueExW(hk, APP_NAME, 0, REG_SZ, (BYTE*)p, (wcslen(p)+1)*2);
+        if (!GetModuleFileNameW(NULL, p, MAX_PATH)) {
+            Util_LogLastError(L"GetModuleFileNameW");
+            RegCloseKey(hk);
+            return;
+        }
+
+        wchar_t cmd[MAX_PATH + 3];
+        swprintf(cmd, MAX_PATH + 3, L"\"%ls\"", p);
+        rc = RegSetValueExW(hk, APP_NAME, 0, REG_SZ, (BYTE*)cmd,
+            (DWORD)((wcslen(cmd) + 1) * sizeof(wchar_t)));
+        if (rc != ERROR_SUCCESS) {
+            SetLastError((DWORD)rc);
+            Util_LogLastError(L"RegSetValueExW(AutoStart)");
+        }
     } else {
-        RegDeleteValueW(hk, APP_NAME);
+        rc = RegDeleteValueW(hk, APP_NAME);
+        if (rc != ERROR_SUCCESS && rc != ERROR_FILE_NOT_FOUND) {
+            SetLastError((DWORD)rc);
+            Util_LogLastError(L"RegDeleteValueW(AutoStart)");
+        }
     }
     RegCloseKey(hk);
 }
@@ -51,6 +73,8 @@ void Config_Load(void) {
     GetIniPath(path);
     g_cfg.workMin   = GetPrivateProfileIntW(L"Settings", L"WorkMin",   DEF_WORK_MIN,   path);
     g_cfg.focusMin  = GetPrivateProfileIntW(L"Settings", L"FocusMin",  DEF_FOCUS_MIN,  path);
+    if (g_cfg.workMin < 1 || g_cfg.workMin > 180) g_cfg.workMin = DEF_WORK_MIN;
+    if (g_cfg.focusMin < 10 || g_cfg.focusMin > 720) g_cfg.focusMin = DEF_FOCUS_MIN;
     g_cfg.autoStart = Reg_GetAutoStart();
 }
 

@@ -39,11 +39,23 @@ static void _Spin(HWND buddy, int lo,int hi,int val, HWND p, int id) {
     SendMessageW(hw, UDM_SETPOS32,   0,  val);
 }
 
+static int _ScaleDpi(int value, UINT dpi) {
+    return MulDiv(value, (int)dpi, 96);
+}
+
+static UINT _DpiOfWindowOrScreen(HWND hwnd) {
+    HDC hdc = GetDC(hwnd);
+    UINT dpi = (UINT)GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(hwnd, hdc);
+    return dpi ? dpi : 96;
+}
+
 void Cfg_Open(void) {
     if (g_hCfg && IsWindow(g_hCfg)) { SetForegroundWindow(g_hCfg); return; }
 
     /* 计算外部窗口尺寸，使客户区刚好容纳控件 */
-    RECT rc = {0, 0, 240, 150};
+    UINT dpi = _DpiOfWindowOrScreen(NULL);
+    RECT rc = {0, 0, _ScaleDpi(240, dpi), _ScaleDpi(150, dpi)};
     AdjustWindowRectEx(&rc,
         WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
         FALSE,
@@ -90,37 +102,46 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         fT = Util_Font(11, TRUE);
         fN = Util_Font(10, FALSE);
         fS = Util_Font(9,  FALSE);
+        UINT dpi = _DpiOfWindowOrScreen(hwnd);
 
         /* 统一边距和整齐排列 */
         _Ctrl(L"STATIC", L"工作时长 (分)", SS_LEFT|SS_CENTERIMAGE,
-              20, 20, 100, 24, hwnd, 0, fN);
+              _ScaleDpi(20, dpi), _ScaleDpi(20, dpi),
+              _ScaleDpi(100, dpi), _ScaleDpi(24, dpi), hwnd, 0, fN);
               
         wchar_t v[8];
         swprintf(v,8,L"%d",g_cfg.workMin);
-        HWND eW = _Edit(v, 120, 20, 48, 24, hwnd, IDC_WORK_E, fN);
+        HWND eW = _Edit(v, _ScaleDpi(120, dpi), _ScaleDpi(20, dpi),
+            _ScaleDpi(48, dpi), _ScaleDpi(24, dpi), hwnd, IDC_WORK_E, fN);
         _Spin(eW, 1, 180, g_cfg.workMin, hwnd, IDC_WORK_S);
         _Ctrl(L"STATIC", L"1-180", SS_LEFT|SS_CENTERIMAGE,
-              176, 20, 40, 24, hwnd, 0, fS);
+              _ScaleDpi(176, dpi), _ScaleDpi(20, dpi),
+              _ScaleDpi(40, dpi), _ScaleDpi(24, dpi), hwnd, 0, fS);
 
         /* 专注模式时长 */
         _Ctrl(L"STATIC", L"专注模式 (分)", SS_LEFT|SS_CENTERIMAGE,
-              20, 60, 100, 24, hwnd, 0, fN);
+              _ScaleDpi(20, dpi), _ScaleDpi(60, dpi),
+              _ScaleDpi(100, dpi), _ScaleDpi(24, dpi), hwnd, 0, fN);
               
         wchar_t vF[8];
         swprintf(vF,8,L"%d",g_cfg.focusMin);
-        HWND eF = _Edit(vF, 120, 60, 48, 24, hwnd, IDC_FOCUS_E, fN);
+        HWND eF = _Edit(vF, _ScaleDpi(120, dpi), _ScaleDpi(60, dpi),
+            _ScaleDpi(48, dpi), _ScaleDpi(24, dpi), hwnd, IDC_FOCUS_E, fN);
         _Spin(eF, 10, 720, g_cfg.focusMin, hwnd, IDC_FOCUS_S);
         _Ctrl(L"STATIC", L"10-720", SS_LEFT|SS_CENTERIMAGE,
-              176, 60, 50, 24, hwnd, 0, fS);
+              _ScaleDpi(176, dpi), _ScaleDpi(60, dpi),
+              _ScaleDpi(50, dpi), _ScaleDpi(24, dpi), hwnd, 0, fS);
 
         /* 开机启动 */
         HWND hChk = _Ctrl(L"BUTTON", L"开机自动启动", BS_AUTOCHECKBOX,
-                          20, 100, 110, 24, hwnd, IDC_AUTO, fN);
+            _ScaleDpi(20, dpi), _ScaleDpi(100, dpi),
+            _ScaleDpi(110, dpi), _ScaleDpi(24, dpi), hwnd, IDC_AUTO, fN);
         SendMessageW(hChk, BM_SETCHECK, g_cfg.autoStart ? BST_CHECKED : BST_UNCHECKED, 0);
 
         /* 保存按钮 */
         _Ctrl(L"BUTTON", L"保存设置", BS_DEFPUSHBUTTON,
-              140, 98, 76, 28, hwnd, IDC_OK, fT);
+            _ScaleDpi(140, dpi), _ScaleDpi(98, dpi),
+            _ScaleDpi(76, dpi), _ScaleDpi(28, dpi), hwnd, IDC_OK, fT);
         return 0;
     }
     case WM_COMMAND:
