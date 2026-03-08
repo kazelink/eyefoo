@@ -35,17 +35,22 @@ static void GetIniPath(wchar_t* path) {
 void Config_Load(void) {
     wchar_t path[MAX_PATH];
     GetIniPath(path);
-    g_cfg.workMin = GetPrivateProfileIntW(L"Settings", L"WorkMin", DEF_WORK_MIN, path);
-    g_cfg.autoStart = Reg_GetAutoStart();
+    g_cfg.workMin   = GetPrivateProfileIntW(L"Settings", L"WorkMin",   DEF_WORK_MIN,   path);
+    g_cfg.focusMin  = GetPrivateProfileIntW(L"Settings", L"FocusMin",  DEF_FOCUS_MIN,  path);
+    g_cfg.autoStart = GetPrivateProfileIntW(L"Settings", L"AutoStart", 0,              path);
 }
 
 void Config_Save(void) {
     wchar_t path[MAX_PATH];
-    wchar_t buf[32];
     GetIniPath(path);
-    swprintf(buf, 32, L"%d", g_cfg.workMin);
-    WritePrivateProfileStringW(L"Settings", L"WorkMin", buf, path);
-    Reg_SetAutoStart(g_cfg.autoStart);
+    wchar_t bWork[16], bFocus[16], bAuto[16];
+    swprintf(bWork, 16, L"%d", g_cfg.workMin);
+    swprintf(bFocus, 16, L"%d", g_cfg.focusMin);
+    swprintf(bAuto, 16, L"%d", g_cfg.autoStart ? 1 : 0);
+
+    WritePrivateProfileStringW(L"Settings", L"WorkMin",   bWork, path);
+    WritePrivateProfileStringW(L"Settings", L"FocusMin",  bFocus, path);
+    WritePrivateProfileStringW(L"Settings", L"AutoStart", bAuto, path);
 }
 
 HFONT Util_Font(int pt, BOOL bold) {

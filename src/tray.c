@@ -43,12 +43,21 @@ void Tray_Menu(HWND hwnd) {
     POINT pt; GetCursorPos(&pt);
     HMENU hm = CreatePopupMenu();
 
-    if (g_state == ST_WORK && g_snoozed < MAX_SNOOZE) {
-        AppendMenuW(hm, MF_STRING, IDM_SNOOZE, L"推迟 5 分钟");
+    if (g_state == ST_WORK) {
+        if (g_snoozed < MAX_SNOOZE) {
+            AppendMenuW(hm, MF_STRING, IDM_SNOOZE, L"推迟 5 分钟");
+        }
+        AppendMenuW(hm, MF_STRING, IDM_RESET, L"重置倒计时");
         AppendMenuW(hm, MF_SEPARATOR, 0, NULL);
     }
     if (g_state != ST_FOCUS) {
-        AppendMenuW(hm, MF_STRING, IDM_FOCUS, L"专注模式 (2小时)");
+        wchar_t focusText[64];
+        if (g_cfg.focusMin >= 60 && g_cfg.focusMin % 60 == 0) {
+            swprintf(focusText, 64, L"专注模式 (%d 小时)", g_cfg.focusMin / 60);
+        } else {
+            swprintf(focusText, 64, L"专注模式 (%d 分钟)", g_cfg.focusMin);
+        }
+        AppendMenuW(hm, MF_STRING, IDM_FOCUS, focusText);
         AppendMenuW(hm, MF_SEPARATOR, 0, NULL);
     } else {
         AppendMenuW(hm, MF_STRING, IDM_STOP_FOCUS, L"结束专注");

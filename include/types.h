@@ -17,7 +17,7 @@ typedef enum { ST_WORK, ST_PAUSED, ST_FOCUS } State;
 
 typedef struct {
     int workMin;
-    int restMin;
+    int focusMin;
     BOOL autoStart;
 } Cfg;
 
@@ -37,8 +37,7 @@ extern HFONT g_hFontHeavy;
 extern HICON g_hIco;
 
 #define DEF_WORK_MIN   40
-#define DEF_REST_MIN    1
-#define FOCUS_MIN     120
+#define DEF_FOCUS_MIN  60
 #define MAX_SNOOZE      3
 #define SNOOZE_MIN      5
 #define WARN_SEC       60

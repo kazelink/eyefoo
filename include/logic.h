@@ -6,6 +6,7 @@ void Logic_StartRest(void);
 void Logic_StartFocus(void);
 void Logic_StopFocus(void);
 void Logic_Snooze(void);
+void Logic_Reset(void);
 void Logic_Tick(void);
 
 #endif

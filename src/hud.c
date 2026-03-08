@@ -21,9 +21,7 @@ void HUD_Refresh(void) {
     if (!g_hHUD) return;
 
     int remWork = g_cfg.workMin * 60 - g_elapsed;
-    int remRest = g_cfg.restMin * 60 - g_elapsed;
     if (remWork < 0) remWork = 0;
-    if (remRest < 0) remRest = 0;
 
     // Work: blue progress
     float total = g_cfg.workMin * 60.0f;

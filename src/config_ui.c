@@ -37,7 +37,7 @@ void Cfg_Open(void) {
     if (g_hCfg && IsWindow(g_hCfg)) { SetForegroundWindow(g_hCfg); return; }
 
     /* 计算外部窗口尺寸，使客户区刚好容纳控件 */
-    RECT rc = {0, 0, 240, 110};
+    RECT rc = {0, 0, 240, 150};
     AdjustWindowRectEx(&rc,
         WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU,
         FALSE,
@@ -88,14 +88,25 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         _Ctrl(L"STATIC", L"1-180", SS_LEFT|SS_CENTERIMAGE,
               176, 20, 40, 24, hwnd, 0, fS);
 
+        /* 专注模式时长 */
+        _Ctrl(L"STATIC", L"专注模式 (分)", SS_LEFT|SS_CENTERIMAGE,
+              20, 60, 100, 24, hwnd, 0, fN);
+              
+        wchar_t vF[8];
+        swprintf(vF,8,L"%d",g_cfg.focusMin);
+        HWND eF = _Edit(vF, 120, 60, 48, 24, hwnd, IDC_FOCUS_E, fN);
+        _Spin(eF, 10, 720, g_cfg.focusMin, hwnd, IDC_FOCUS_S);
+        _Ctrl(L"STATIC", L"10-720", SS_LEFT|SS_CENTERIMAGE,
+              176, 60, 50, 24, hwnd, 0, fS);
+
         /* 开机启动 */
         HWND hChk = _Ctrl(L"BUTTON", L"开机自动启动", BS_AUTOCHECKBOX,
-                          20, 60, 110, 24, hwnd, IDC_AUTO, fN);
+                          20, 100, 110, 24, hwnd, IDC_AUTO, fN);
         SendMessageW(hChk, BM_SETCHECK, g_cfg.autoStart ? BST_CHECKED : BST_UNCHECKED, 0);
 
         /* 保存按钮 */
         _Ctrl(L"BUTTON", L"保存设置", BS_DEFPUSHBUTTON,
-              140, 58, 76, 28, hwnd, IDC_OK, fT);
+              140, 98, 76, 28, hwnd, IDC_OK, fT);
         return 0;
     }
     case WM_COMMAND:
@@ -104,13 +115,21 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             DestroyWindow(hwnd);
             break;
         case IDC_OK: {
-            wchar_t v[8];
-            GetWindowTextW(GetDlgItem(hwnd,IDC_WORK_E), v,8); int nw=_wtoi(v);
+            wchar_t v[8], vF[8];
+            GetWindowTextW(GetDlgItem(hwnd,IDC_WORK_E),  v,8);  int nw=_wtoi(v);
+            GetWindowTextW(GetDlgItem(hwnd,IDC_FOCUS_E), vF,8); int nF=_wtoi(vF);
+            
             if (nw<1||nw>180) {
                 MessageBoxW(hwnd, L"请检查工作时长输入范围(1-180)", APP_NAME, MB_OK|MB_ICONWARNING);
                 return 0;
             }
+            if (nF<10||nF>720) {
+                MessageBoxW(hwnd, L"请检查专注模式时长输入范围(10-720)", APP_NAME, MB_OK|MB_ICONWARNING);
+                return 0;
+            }
+
             g_cfg.workMin = nw;
+            g_cfg.focusMin = nF;
             g_cfg.autoStart = (BST_CHECKED == SendMessageW(GetDlgItem(hwnd,IDC_AUTO), BM_GETCHECK,0,0));
             Config_Save();
             Logic_StartWork();

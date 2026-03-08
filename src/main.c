@@ -12,7 +12,7 @@
 #include "config_ui.h"
 #include "utils.h"
 
-Cfg   g_cfg     = { DEF_WORK_MIN, DEF_REST_MIN, FALSE };
+Cfg   g_cfg     = { DEF_WORK_MIN, DEF_FOCUS_MIN, FALSE };
 State g_state   = ST_WORK;
 State g_saved_state = ST_WORK;
 int   g_elapsed = 0;
@@ -79,6 +79,7 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_COMMAND:
         switch (LOWORD(wp)) {
         case IDM_SNOOZE:   Logic_Snooze(); break;
+        case IDM_RESET:    Logic_Reset(); break;
         case IDM_FOCUS:    Logic_StartFocus(); break;
         case IDM_STOP_FOCUS: Logic_StopFocus(); break;
         case IDM_SETTINGS: Cfg_Open();     break;
