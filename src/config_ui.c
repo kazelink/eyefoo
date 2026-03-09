@@ -78,7 +78,7 @@ void Cfg_Open(void) {
     rc.left = 0;
     rc.top = 0;
     rc.right = ScaleDpi(250, dpi);
-    rc.bottom = ScaleDpi(195, dpi);
+    rc.bottom = ScaleDpi(190, dpi);
     AdjustWindowRectEx(&rc,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         FALSE,
@@ -142,42 +142,32 @@ LRESULT CALLBACK CfgProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             ScaleDpi(100, dpi), ScaleDpi(24, dpi), hwnd, 0, fNormal);
 
         swprintf(workBuf, 8, L"%d", g_cfg.workMin);
-        workEdit = EditBox(workBuf, ScaleDpi(120, dpi), ScaleDpi(20, dpi),
-            ScaleDpi(48, dpi), ScaleDpi(24, dpi), hwnd, IDC_WORK_E, fNormal);
+        workEdit = EditBox(workBuf, ScaleDpi(130, dpi), ScaleDpi(20, dpi),
+            ScaleDpi(60, dpi), ScaleDpi(24, dpi), hwnd, IDC_WORK_E, fNormal);
         Spin(workEdit, 1, 180, g_cfg.workMin, hwnd, IDC_WORK_S);
-        Ctrl(L"STATIC", L"1-180", SS_LEFT | SS_CENTERIMAGE,
-            ScaleDpi(176, dpi), ScaleDpi(20, dpi),
-            ScaleDpi(40, dpi), ScaleDpi(24, dpi), hwnd, 0, fSmall);
 
         Ctrl(L"STATIC", L"Focus minutes", SS_LEFT | SS_CENTERIMAGE,
-            ScaleDpi(20, dpi), ScaleDpi(60, dpi),
+            ScaleDpi(20, dpi), ScaleDpi(55, dpi),
             ScaleDpi(100, dpi), ScaleDpi(24, dpi), hwnd, 0, fNormal);
 
         swprintf(focusBuf, 8, L"%d", g_cfg.focusMin);
-        focusEdit = EditBox(focusBuf, ScaleDpi(120, dpi), ScaleDpi(60, dpi),
-            ScaleDpi(48, dpi), ScaleDpi(24, dpi), hwnd, IDC_FOCUS_E, fNormal);
+        focusEdit = EditBox(focusBuf, ScaleDpi(130, dpi), ScaleDpi(55, dpi),
+            ScaleDpi(60, dpi), ScaleDpi(24, dpi), hwnd, IDC_FOCUS_E, fNormal);
         Spin(focusEdit, 10, 720, g_cfg.focusMin, hwnd, IDC_FOCUS_S);
-        Ctrl(L"STATIC", L"10-720", SS_LEFT | SS_CENTERIMAGE,
-            ScaleDpi(176, dpi), ScaleDpi(60, dpi),
-            ScaleDpi(50, dpi), ScaleDpi(24, dpi), hwnd, 0, fSmall);
 
         autoStart = Ctrl(L"BUTTON", L"Start with Windows", BS_AUTOCHECKBOX,
-            ScaleDpi(20, dpi), ScaleDpi(100, dpi),
-            ScaleDpi(160, dpi), ScaleDpi(24, dpi), hwnd, IDC_AUTO, fNormal);
+            ScaleDpi(20, dpi), ScaleDpi(90, dpi),
+            ScaleDpi(180, dpi), ScaleDpi(24, dpi), hwnd, IDC_AUTO, fNormal);
         SendMessageW(autoStart, BM_SETCHECK, g_cfg.autoStart ? BST_CHECKED : BST_UNCHECKED, 0);
 
         debugLog = Ctrl(L"BUTTON", L"Debug log", BS_AUTOCHECKBOX,
-            ScaleDpi(20, dpi), ScaleDpi(126, dpi),
-            ScaleDpi(160, dpi), ScaleDpi(24, dpi), hwnd, IDC_DEBUG, fNormal);
+            ScaleDpi(20, dpi), ScaleDpi(115, dpi),
+            ScaleDpi(180, dpi), ScaleDpi(24, dpi), hwnd, IDC_DEBUG, fNormal);
         SendMessageW(debugLog, BM_SETCHECK, g_cfg.debugLog ? BST_CHECKED : BST_UNCHECKED, 0);
 
-        Ctrl(L"STATIC", L"Log rotates automatically when it grows too large.", SS_LEFT,
-            ScaleDpi(20, dpi), ScaleDpi(152, dpi),
-            ScaleDpi(190, dpi), ScaleDpi(20, dpi), hwnd, 0, fSmall);
-
         Ctrl(L"BUTTON", L"Save", BS_DEFPUSHBUTTON,
-            ScaleDpi(182, dpi), ScaleDpi(124, dpi),
-            ScaleDpi(48, dpi), ScaleDpi(30, dpi), hwnd, IDC_OK, fTitle);
+            ScaleDpi(90, dpi), ScaleDpi(145, dpi),
+            ScaleDpi(70, dpi), ScaleDpi(30, dpi), hwnd, IDC_OK, fTitle);
         return 0;
     }
     case WM_COMMAND:

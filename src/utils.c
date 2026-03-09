@@ -447,5 +447,5 @@ HFONT Util_HeavyFont(int pt) {
     return CreateFontW(h, 0, 0, 0, FW_BOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        ANTIALIASED_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+        ANTIALIASED_QUALITY, DEFAULT_PITCH, L"Consolas");
 }
