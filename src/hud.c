@@ -32,7 +32,7 @@ void HUD_Refresh(void) {
     }
 
     total = g_cfg.workMin * 60.0f;
-    s_hudProgress = (total > 0) ? (float)(total - remWork) / total : 1.0f;
+    s_hudProgress = (total > 0) ? (float)remWork / total : 0.0f;
     s_hudTextCol = (remWork <= WARN_SEC) ? RGB(179, 0, 0) : RGB(250, 250, 250);
 
     if (g_state == ST_PAUSED) {
