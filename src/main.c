@@ -9,16 +9,10 @@
 #include "logic.h"
 #include "hud.h"
 #include "tray.h"
-
-#include "types.h"
-#include "resource.h"
-#include "logic.h"
-#include "hud.h"
-#include "tray.h"
 #include "config_ui.h"
 #include "utils.h"
 
-Cfg   g_cfg     = { DEF_WORK_MIN, DEF_FOCUS_MIN, FALSE };
+Cfg   g_cfg     = { DEF_WORK_MIN, DEF_FOCUS_MIN, FALSE, FALSE };
 State g_state   = ST_WORK;
 State g_saved_state = ST_WORK;
 int   g_elapsed = 0;
@@ -37,6 +31,7 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
         g_hMain = hwnd;
+        Util_Log(L"Main window created");
         g_hIco  = LoadIconW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP));
         if (!g_hIco) {
             g_hIco = LoadIconW(NULL, IDI_APPLICATION);
@@ -56,7 +51,9 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
 
     case WM_TIMER:
-        Logic_Tick();
+        if (wp == ID_TICK) {
+            Logic_Tick();
+        }
         return 0;
 
     case WM_WTSSESSION_CHANGE:
@@ -88,6 +85,7 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_DESTROY:
         {
+           Util_Log(L"Main window destroy requested");
            NOTIFYICONDATA nid = {0};
            nid.cbSize = sizeof(nid);
            nid.hWnd = hwnd;
@@ -100,8 +98,15 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             Util_LogLastError(L"WTSUnRegisterSessionNotification");
         }
         KillTimer(hwnd, ID_TICK);
+        if (g_hCfg && IsWindow(g_hCfg)) {
+            DestroyWindow(g_hCfg);
+        }
+        if (g_hHUD && IsWindow(g_hHUD)) {
+            DestroyWindow(g_hHUD);
+        }
         if (g_hIco)  DestroyIcon(g_hIco);
         if (g_hFontHeavy) DeleteObject(g_hFontHeavy);
+        g_hMain = NULL;
         PostQuitMessage(0);
         return 0;
     }
@@ -111,14 +116,21 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
     (void)p; (void)cmd; (void)n;
     int exitCode = 1;
-    
+    int gm;
+
+    Util_LogInit();
+    Util_InstallCrashHandlers();
+
     HANDLE hMutex = CreateMutexW(NULL, TRUE, L"EyeReminder_SingleInstance_Mutex");
     if (!hMutex) {
         Util_LogLastError(L"CreateMutexW");
+        Util_LogShutdown();
         return exitCode;
     }
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        Util_Log(L"Another instance is already running; exiting");
         CloseHandle(hMutex);
+        Util_LogShutdown();
         return 0; // Exit if already running
     }
 
@@ -157,16 +169,23 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
         Util_LogLastError(L"CreateWindowExW(WC_MAIN)");
         goto cleanup;
     }
+    Util_Log(L"Message window created successfully");
 
     MSG m;
-    while (GetMessageW(&m, NULL, 0, 0)) {
+    while ((gm = GetMessageW(&m, NULL, 0, 0)) > 0) {
         TranslateMessage(&m);
         DispatchMessageW(&m);
     }
-    exitCode = (int)m.wParam;
+    if (gm == -1) {
+        Util_LogLastError(L"GetMessageW");
+    } else {
+        exitCode = (int)m.wParam;
+    }
 
 cleanup:
+    Util_LogFormat(L"WinMain cleanup: exitCode=%d", exitCode);
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
+    Util_LogShutdown();
     return exitCode;
 }

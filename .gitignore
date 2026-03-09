@@ -1,1 +1,4 @@
-eye_reminder.exe
+eye_reminder*.exe
+eye_reminder.log
+eye_reminder.log.*
+res/resource.o

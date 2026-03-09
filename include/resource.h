@@ -17,5 +17,6 @@
 #define IDC_OK        204
 #define IDC_FOCUS_E   205
 #define IDC_FOCUS_S   206
+#define IDC_DEBUG     207
 
 #endif

@@ -1,11 +1,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-
-
 #include <windows.h>
 
-#define APP_NAME      L"护眼提醒"
+#define APP_NAME      L"Eye Reminder"
 #define WC_MAIN       L"EyeMain"
 #define WC_HUD        L"EyeHUD"
 #define WC_CFG        L"EyeCfg"
@@ -19,19 +17,20 @@ typedef struct {
     int workMin;
     int focusMin;
     BOOL autoStart;
+    BOOL debugLog;
 } Cfg;
 
-extern Cfg   g_cfg;
+extern Cfg g_cfg;
 extern State g_state;
 extern State g_saved_state;
-extern int   g_elapsed;
-extern volatile LONG   g_focus_elapsed;
-extern int   g_snoozed;
-extern BOOL  g_warned;
+extern int g_elapsed;
+extern volatile LONG g_focus_elapsed;
+extern int g_snoozed;
+extern BOOL g_warned;
 
-extern HWND  g_hMain;
-extern HWND  g_hHUD;
-extern HWND  g_hCfg;
+extern HWND g_hMain;
+extern HWND g_hHUD;
+extern HWND g_hCfg;
 extern HFONT g_hFontHeavy;
 extern HICON g_hIco;
 

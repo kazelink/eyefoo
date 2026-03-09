@@ -1,9 +1,12 @@
 @echo off
 
+if exist res\resource.o del /q res\resource.o
+
 echo [*] Compiling Resources...
 windres res\resource.rc res\resource.o
 if %errorlevel% neq 0 (
     echo Resource Compile FAILED.
+    if exist res\resource.o del /q res\resource.o
     pause
     exit /b 1
 )
@@ -13,9 +16,11 @@ gcc src\main.c src\logic.c src\hud.c src\tray.c src\config_ui.c src\utils.c res\
 
 if %errorlevel% neq 0 (
     echo Compilation FAILED.
+    if exist res\resource.o del /q res\resource.o
     pause
     exit /b 1
 )
-del res\resource.o
+
+if exist res\resource.o del /q res\resource.o
 echo [*] DONE. Success!
 pause
