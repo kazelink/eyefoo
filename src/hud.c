@@ -12,9 +12,9 @@
 #define HUD_PAD_X     20
 #define HUD_PAD_Y     80
 
-static COLORREF s_hudBg = RGB(40, 44, 40);
-static COLORREF s_hudProgW = RGB(105, 145, 115);
-static COLORREF s_hudTextCol = RGB(250, 250, 250);
+static COLORREF s_hudBg = RGB(242, 242, 242);     // Light gray
+static COLORREF s_hudProgW = RGB(178, 223, 138);  // User's #b2df8a (light green)
+static COLORREF s_hudTextCol = RGB(51, 51, 51);   // User's #333
 static wchar_t s_hudText[32];
 static float s_hudProgress = 0.0f;
 
@@ -33,7 +33,7 @@ void HUD_Refresh(void) {
 
     total = g_cfg.workMin * 60.0f;
     s_hudProgress = (total > 0) ? (float)remWork / total : 0.0f;
-    s_hudTextCol = (remWork <= WARN_SEC) ? RGB(179, 0, 0) : RGB(250, 250, 250);
+    s_hudTextCol = (remWork <= WARN_SEC) ? RGB(225, 30, 30) : RGB(51, 51, 51); // Darker red for warning to be readable on light background
 
     if (g_state == ST_PAUSED) {
         swprintf(s_hudText, 32, L"Paused");
