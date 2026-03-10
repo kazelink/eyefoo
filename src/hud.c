@@ -45,7 +45,7 @@ void HUD_Refresh(void) {
     UpdateWindow(g_hHUD);
 }
 
-void HUD_Create(void) {
+void HUD_UpdatePosition(void) {
     POINT pt;
     HMONITOR hMon;
     MONITORINFO mi = {0};
@@ -57,6 +57,38 @@ void HUD_Create(void) {
     int py;
     int x;
     int y;
+
+    if (!g_hHUD) return;
+
+    GetCursorPos(&pt);
+    hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(hMon, &mi)) {
+        return;
+    }
+
+    hdc = GetDC(NULL);
+    dpi = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(NULL, hdc);
+
+    w = MulDiv(HUD_W, dpi, 96);
+    h = MulDiv(HUD_H, dpi, 96);
+    px = MulDiv(HUD_PAD_X, dpi, 96);
+    py = MulDiv(HUD_PAD_Y, dpi, 96);
+    x = mi.rcWork.right - w - px;
+    y = mi.rcWork.bottom - h - py;
+
+    SetWindowPos(g_hHUD, NULL, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void HUD_Create(void) {
+    POINT pt;
+    HMONITOR hMon;
+    MONITORINFO mi = {0};
+    HDC hdc;
+    int dpi;
+    int w;
+    int h;
     int corner;
 
     GetCursorPos(&pt);
@@ -73,15 +105,11 @@ void HUD_Create(void) {
 
     w = MulDiv(HUD_W, dpi, 96);
     h = MulDiv(HUD_H, dpi, 96);
-    px = MulDiv(HUD_PAD_X, dpi, 96);
-    py = MulDiv(HUD_PAD_Y, dpi, 96);
-    x = mi.rcWork.right - w - px;
-    y = mi.rcWork.bottom - h - py;
 
     g_hHUD = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED,
         WC_HUD, NULL, WS_POPUP,
-        x, y, w, h, NULL, NULL, GetModuleHandleW(NULL), NULL);
+        0, 0, w, h, NULL, NULL, GetModuleHandleW(NULL), NULL);
     if (!g_hHUD) {
         Util_LogLastError(L"CreateWindowExW(WC_HUD)");
         return;
@@ -93,6 +121,7 @@ void HUD_Create(void) {
     if (!SetLayeredWindowAttributes(g_hHUD, 0, 240, LWA_ALPHA)) {
         Util_LogLastError(L"SetLayeredWindowAttributes");
     }
+    HUD_UpdatePosition();
     ShowWindow(g_hHUD, SW_SHOWNOACTIVATE);
     HUD_Refresh();
 }

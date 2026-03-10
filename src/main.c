@@ -64,6 +64,20 @@ LRESULT CALLBACK MainProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         return 0;
 
+    case WM_DISPLAYCHANGE:
+        Util_Log(L"Display resolution or monitor count changed");
+        HUD_UpdatePosition();
+        if (g_hCfg && IsWindow(g_hCfg)) {
+            // Give config window a chance to redraw cleanly
+            InvalidateRect(g_hCfg, NULL, TRUE);
+        }
+        return 0;
+
+    case 0x02E0: /* WM_DPICHANGED */
+        Util_Log(L"DPI scaling changed");
+        HUD_UpdatePosition();
+        return 0;
+
     case WM_TRAY:
         switch (LOWORD(lp)) {
         case WM_RBUTTONUP:     Tray_Menu(hwnd); break;
