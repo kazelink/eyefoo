@@ -176,9 +176,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
         goto cleanup;
     }
 
-    /* Create invisible main message window */
+    /* Create invisible main hidden window (gets broadcast messages) */
     HWND hMsgWnd = CreateWindowExW(0, WC_MAIN, APP_NAME, 0,
-        0,0,0,0, HWND_MESSAGE, NULL, hInst, NULL);
+        0,0,0,0, NULL, NULL, hInst, NULL);
     if (!hMsgWnd) {
         Util_LogLastError(L"CreateWindowExW(WC_MAIN)");
         goto cleanup;

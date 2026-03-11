@@ -98,5 +98,6 @@ void Tray_Menu(HWND hwnd) {
         pt.x, pt.y, hwnd, NULL) && GetLastError() != ERROR_SUCCESS) {
         Util_LogLastError(L"TrackPopupMenuEx");
     }
+    PostMessage(hwnd, WM_NULL, 0, 0);
     DestroyMenu(hm);
 }
