@@ -22,13 +22,13 @@ void Tray_Init(HWND hwnd) {
     g_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     g_nid.uCallbackMessage = WM_TRAY;
     g_nid.hIcon = g_hIco;
-    wcscpy(g_nid.szTip, APP_NAME);
+    wcsncpy(g_nid.szTip, APP_NAME, ARRAYSIZE(g_nid.szTip) - 1);
     Tray_Notify(NIM_ADD, L"Shell_NotifyIconW(NIM_ADD) failed");
 }
 
 void Tray_Update(void) {
     if (g_state == ST_PAUSED) {
-        wcscpy(g_nid.szTip, L"Paused (locked)");
+        wcsncpy(g_nid.szTip, L"Paused (locked)", ARRAYSIZE(g_nid.szTip) - 1);
     } else {
         int rem = g_cfg.workMin * 60 - g_elapsed;
         if (rem < 0) {
@@ -44,8 +44,8 @@ void Tray_Balloon(const wchar_t *title, const wchar_t *msg) {
     g_nid.uFlags = NIF_INFO;
     g_nid.uTimeout = 5000;
     g_nid.dwInfoFlags = NIIF_NOSOUND;
-    wcscpy(g_nid.szInfoTitle, title);
-    wcscpy(g_nid.szInfo, msg);
+    wcsncpy(g_nid.szInfoTitle, title, ARRAYSIZE(g_nid.szInfoTitle) - 1);
+    wcsncpy(g_nid.szInfo, msg, ARRAYSIZE(g_nid.szInfo) - 1);
     Tray_Notify(NIM_MODIFY, L"Shell_NotifyIconW(NIM_MODIFY balloon) failed");
 }
 

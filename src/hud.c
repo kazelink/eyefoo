@@ -18,6 +18,36 @@ static COLORREF s_hudTextCol = RGB(51, 51, 51);   // User's #333
 static wchar_t s_hudText[32];
 static float s_hudProgress = 0.0f;
 
+static BOOL GetHudRect(int *outX, int *outY, int *outW, int *outH) {
+    POINT pt;
+    HMONITOR hMon;
+    MONITORINFO mi = {0};
+    HDC hdc;
+    int dpi, w, h, px, py;
+
+    GetCursorPos(&pt);
+    hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(hMon, &mi)) {
+        return FALSE;
+    }
+
+    hdc = GetDC(NULL);
+    dpi = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(NULL, hdc);
+
+    w  = MulDiv(HUD_W,     dpi, 96);
+    h  = MulDiv(HUD_H,     dpi, 96);
+    px = MulDiv(HUD_PAD_X, dpi, 96);
+    py = MulDiv(HUD_PAD_Y, dpi, 96);
+
+    *outW = w;
+    *outH = h;
+    *outX = mi.rcWork.right  - w - px;
+    *outY = mi.rcWork.bottom - h - py;
+    return TRUE;
+}
+
 void HUD_Refresh(void) {
     int remWork;
     float total;
@@ -33,7 +63,7 @@ void HUD_Refresh(void) {
 
     total = g_cfg.workMin * 60.0f;
     s_hudProgress = (total > 0) ? (float)remWork / total : 0.0f;
-    s_hudTextCol = (remWork <= WARN_SEC) ? RGB(225, 30, 30) : RGB(51, 51, 51); // Darker red for warning to be readable on light background
+    s_hudTextCol = (remWork <= WARN_SEC) ? RGB(225, 30, 30) : RGB(51, 51, 51);
 
     if (g_state == ST_PAUSED) {
         swprintf(s_hudText, 32, L"Paused");
@@ -41,70 +71,31 @@ void HUD_Refresh(void) {
         swprintf(s_hudText, 32, L"%02d:%02d", remWork / 60, remWork % 60);
     }
 
+    /* Flash red/gray in the last 10 seconds */
+    s_hudBg = (g_state == ST_WORK && remWork > 0 && remWork <= 10 && remWork % 2)
+        ? RGB(255, 80, 80) : RGB(242, 242, 242);
+
     InvalidateRect(g_hHUD, NULL, FALSE);
     UpdateWindow(g_hHUD);
 }
 
 void HUD_UpdatePosition(void) {
-    POINT pt;
-    HMONITOR hMon;
-    MONITORINFO mi = {0};
-    HDC hdc;
-    int dpi;
-    int w;
-    int h;
-    int px;
-    int py;
-    int x;
-    int y;
+    int x, y, w, h;
 
     if (!g_hHUD) return;
-
-    GetCursorPos(&pt);
-    hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-    mi.cbSize = sizeof(mi);
-    if (!GetMonitorInfoW(hMon, &mi)) {
-        return;
-    }
-
-    hdc = GetDC(NULL);
-    dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-    ReleaseDC(NULL, hdc);
-
-    w = MulDiv(HUD_W, dpi, 96);
-    h = MulDiv(HUD_H, dpi, 96);
-    px = MulDiv(HUD_PAD_X, dpi, 96);
-    py = MulDiv(HUD_PAD_Y, dpi, 96);
-    x = mi.rcWork.right - w - px;
-    y = mi.rcWork.bottom - h - py;
+    if (!GetHudRect(&x, &y, &w, &h)) return;
 
     SetWindowPos(g_hHUD, NULL, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void HUD_Create(void) {
-    POINT pt;
-    HMONITOR hMon;
-    MONITORINFO mi = {0};
-    HDC hdc;
-    int dpi;
-    int w;
-    int h;
+    int x, y, w, h;
     int corner;
 
-    GetCursorPos(&pt);
-    hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-    mi.cbSize = sizeof(mi);
-    if (!GetMonitorInfoW(hMon, &mi)) {
+    if (!GetHudRect(&x, &y, &w, &h)) {
         Util_LogLastError(L"GetMonitorInfoW");
         return;
     }
-
-    hdc = GetDC(NULL);
-    dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-    ReleaseDC(NULL, hdc);
-
-    w = MulDiv(HUD_W, dpi, 96);
-    h = MulDiv(HUD_H, dpi, 96);
 
     g_hHUD = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED,

@@ -131,11 +131,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
     (void)p; (void)cmd; (void)n;
     int exitCode = 1;
     int gm;
+    HANDLE hMutex;
+    INITCOMMONCONTROLSEX ic = {sizeof(ic), ICC_UPDOWN_CLASS};
+    WNDCLASSEXW wc = {0};
+    HWND hMsgWnd;
+    MSG m;
 
     Util_LogInit();
     Util_InstallCrashHandlers();
 
-    HANDLE hMutex = CreateMutexW(NULL, TRUE, L"EyeReminder_SingleInstance_Mutex");
+    hMutex = CreateMutexW(NULL, TRUE, L"EyeReminder_SingleInstance_Mutex");
     if (!hMutex) {
         Util_LogLastError(L"CreateMutexW");
         Util_LogShutdown();
@@ -145,16 +150,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
         Util_Log(L"Another instance is already running; exiting");
         CloseHandle(hMutex);
         Util_LogShutdown();
-        return 0; // Exit if already running
+        return 0;
     }
 
-    INITCOMMONCONTROLSEX ic = {sizeof(ic), ICC_UPDOWN_CLASS};
     if (!InitCommonControlsEx(&ic)) {
         Util_LogLastError(L"InitCommonControlsEx");
     }
 
     /* Register HUD class */
-    WNDCLASSEXW wc = {0};
     wc.cbSize        = sizeof(wc);
     wc.style         = CS_DBLCLKS;
     wc.lpfnWndProc   = HUDProc;
@@ -177,7 +180,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
     }
 
     /* Create invisible main hidden window (gets broadcast messages) */
-    HWND hMsgWnd = CreateWindowExW(0, WC_MAIN, APP_NAME, 0,
+    hMsgWnd = CreateWindowExW(0, WC_MAIN, APP_NAME, 0,
         0,0,0,0, NULL, NULL, hInst, NULL);
     if (!hMsgWnd) {
         Util_LogLastError(L"CreateWindowExW(WC_MAIN)");
@@ -185,7 +188,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE p, LPSTR cmd, int n) {
     }
     Util_Log(L"Message window created successfully");
 
-    MSG m;
     while ((gm = GetMessageW(&m, NULL, 0, 0)) > 0) {
         TranslateMessage(&m);
         DispatchMessageW(&m);
